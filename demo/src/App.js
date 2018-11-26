@@ -1,28 +1,68 @@
-import React, { Component } from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from 'react';
+import { ApolloProvider, Query, Mutation } from 'react-apollo';
+import { Provider } from 'react-redux';
+import { message } from 'antd';
+import Client from './apolloConfig';
+import Store from './storeConfig';
+import * as AppQuery from './querys';
+import Loading from './loading';
+import Input from './input';
+import SubmitButton from './submitButton';
+import Lists from './list';
 
-class App extends Component {
-  render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </header>
-      </div>
-    );
-  }
+const App = _ => {
+  const handleRefetch = () => [
+    {query: AppQuery.getAllTodoQuery },
+  ]
+  return (
+    <ApolloProvider client={Client}>
+      <Provider store={Store}>
+        <Query
+          query={AppQuery.getAllTodoQuery}
+        >
+          {
+            ({ loading, error, data, refetch }) => {
+              if (error) {
+                message.error('网络错误', 2);
+                return (
+                  <p>Eoor...</p>
+                )
+              }
+              const allTodoes = data.allTodoes;
+              return (
+                <Mutation mutation={AppQuery.deleteTodo} refetchQueries={handleRefetch} >
+              {
+                (deleteTodo) => {
+                    return (
+                      <Mutation mutation={AppQuery.updateTodo} refetchQueries={handleRefetch}>
+                        {
+                          (updateTodo) => {
+                            return (
+                              <div style={{width: '600px'}}>
+                                <div style={{ margin:'0 auto' }}>
+                                <Input style={{
+                                  width: '300px',
+                                  height: '30px',
+                                }}/>
+                                <SubmitButton refetch={refetch} />
+                                {loading ? <Loading /> : <Lists data={allTodoes} deleteTodo={deleteTodo} updateTodo={updateTodo} />}
+                                </div>
+                              </div>
+                            )
+                          }
+                        }
+                      </Mutation>
+                    )
+                  }
+                }
+          </Mutation>
+              );
+            }
+          }
+          </Query>
+      </Provider>
+    </ApolloProvider>
+   );
 }
 
 export default App;
